@@ -1,38 +1,27 @@
 
+const mongoose = require('mongoose');
+const User = require('./models/User'); // Adjust the path to where your User model is defined
 
-const express=require("express");
-const app = express();
-
-
-app.use("/user",(req,res,next)=>{
-    console.log("response 1 !!")
-    // res.send("this is response 1!!")
-    next();
-},
-(req,res,next)=>{
-    console.log("ayr batao ");
-    // res.send("response 2!!")
-    next();
+// Connect to MongoDB (replace with your connection string)
+mongoose.connect('mongodb+srv://amrendrasharma1328_db_user:<db_password>@devtinder.4rkc8sb.mongodb.net/devTinder', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
 })
+  .then(() => {
+    console.log('Connected to MongoDB');
+    
+    // Create an instance of the User model
+    const user = new User({
+      firstname: 'Akshad',
+      lastname: 'Jaiswal',
+      email: 'Akshad@example.com',
+      age: 22,
+      gender: 'Male'
+    });
 
-
-
-// is caseme nhi work krega bacuse xpress kahega ki aage kya hai me get nhi kr pa arha 
-
-
-
-app.get("/user",(req,res,next)=>{
-    console.log("response 1 !!")
-    res.send("this is response 1!!")
-    next();
-})
-app.get("/user",(req,res,next)=>{
-    console.log("response 1 !!")
-    res.send("this is response 2!!")
-    next();
-})
-app.listen(3000,()=>{
-    console.log("sucessfull running");
-});
-
-
+    // Save the document to the database
+    return user.save();
+  })
+  .then(doc => console.log('Document inserted:', doc))
+  .catch(err => console.error('Error:', err))
+  .finally(() => mongoose.disconnect());

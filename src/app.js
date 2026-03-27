@@ -97,3 +97,4 @@ app.delete("/user", async (req, res) => {
         res.status(400).send("Something went wrong")
     }
 })
+

@@ -1,70 +1,106 @@
 
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
+const validator = require("validator");
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcrypt");
 
-// Define the User schema
-const userSchema = new mongoose.Schema({
-  firstname: { type: String, required: true },
-  lastname: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  age: { type: Number, min: 0 },
-  gender: { type: String, enum: ['Male', 'Female', 'Other'] }
-});
-
-// Create a User model from the schema
-const User = mongoose.model('User', userSchema);
-
-module.exports = User;
-
-
-
-
-
-
-
-
-const userSchema = new Schema({ name: String }, { timestamps: true });
-const User = mongoose.model('User', userSchema);
-
-let doc = await User.create({ name: 'test' });
-
-console.log(doc.createdAt); // 2022-02-26T16:37:48.244Z
-console.log(doc.updatedAt); // 2022-02-26T16:37:48.244Z
-
-doc.name = 'test2';
-await doc.save();
-console.log(doc.createdAt); // 2022-02-26T16:37:48.244Z
-console.log(doc.updatedAt); // 2022-02-26T16:37:48.307Z
-
-doc = await User.findOneAndUpdate({ _id: doc._id }, { name: 'test3' }, { returnDocument: 'after' });
-console.log(doc.createdAt); // 2022-02-26T16:37:48.244Z
-console.log(doc.updatedAt); // 2022-02-26T16:37:48.366Z
-
-
-
-// `findOneAndReplace()` and `replaceOne()` without timestamps specified in `replacement`
-// sets `createdAt` and `updatedAt` to current time.
-doc = await User.findOneAndReplace(
-  { _id: doc._id },
-  { name: 'test3' },
-  { returnDocument: 'after' }
-);
-console.log(doc.createdAt); // 2022-02-26T17:08:14.008Z
-console.log(doc.updatedAt); // 2022-02-26T17:08:14.008Z
-
-// `findOneAndReplace()` and `replaceOne()` with timestamps specified in `replacement`
-// sets `createdAt` and `updatedAt` to the values in `replacement`.
-doc = await User.findOneAndReplace(
-  { _id: doc._id },
+const userSchema = new mongoose.Schema(
   {
-    name: 'test3',
-    createdAt: new Date('2022-06-01'),
-    updatedAt: new Date('2022-06-01')
+    firstName: {
+      type: String,
+      required: true,
+      minLength: 4,
+      maxLength: 50,
+    },
+    lastName: {
+      type: String,
+    },
+    emailId: {
+      type: String,
+      lowercase: true,
+      required: true,
+      unique: true,
+      trim: true,
+      validate(value) {
+        if (!validator.isEmail(value)) {
+          throw new Error("Invalid email address: " + value);
+        }
+      },
+    },
+    password: {
+      type: String,
+      required: true,
+      validate(value) {
+        if (!validator.isStrongPassword(value)) {
+          throw new Error("Enter a Strong Password: " + value);
+        }
+      },
+    },
+    age: {
+      type: Number,
+      min: 18,
+    },
+    gender: {
+      type: String,
+      enum: {
+        values: ["male", "female", "other"],
+        message: `{VALUE} is not a valid gender type`,
+      },
+      // validate(value) {
+      //   if (!["male", "female", "others"].includes(value)) {
+      //     throw new Error("Gender data is not valid");
+      //   }
+      // },
+    },
+    isPremium: {
+      type: Boolean,
+      default: false,
+    },
+    membershipType: {
+      type: String,
+    },
+    photoUrl: {
+      type: String,
+      default: "https://geographyandyou.com/images/user-profile.png",
+      validate(value) {
+        if (!validator.isURL(value)) {
+          throw new Error("Invalid Photo URL: " + value);
+        }
+      },
+    },
+    about: {
+      type: String,
+      default: "This is a default about of the user!",
+    },
+    skills: {
+      type: [String],
+    },
   },
-  { returnDocument: 'after' }
+  {
+    timestamps: true,
+  }
 );
-console.log(doc.createdAt); // 2022-06-01T00:00:00.000Z
-console.log(doc.updatedAt); // 2022-06-01T00:00:00.000Z
 
+userSchema.methods.getJWT = async function () {
+  const user = this;
 
+  const token = await jwt.sign({ _id: user._id }, "DEV@Tinder$790", {
+    expiresIn: "7d",
+  });
 
+  return token;
+};
 
+userSchema.methods.validatePassword = async function (passwordInputByUser) {
+  const user = this;
+  const passwordHash = user.password;
+
+  const isPasswordValid = await bcrypt.compare(
+    passwordInputByUser,
+    passwordHash
+  );
+
+  return isPasswordValid;
+};
+
+module.exports = mongoose.model("User", userSchema);
